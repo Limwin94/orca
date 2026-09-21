@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { X, Minimize2, Pin } from 'lucide-react'
 import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-title-decoration'
+import { isOrchestrationWorkerTerminalTitle } from '../../../../shared/orchestration-worker-terminal-title'
 import { resolveTerminalTabTitle } from '../../../../shared/tab-title-resolution'
 import { useTabAgent } from '@/lib/use-tab-agent'
 import { isImeCompositionKeyDown } from '@/lib/ime-composition-keyboard-event'
@@ -119,9 +120,16 @@ export default function SortableTab({
   // Why: use hook status + title evidence so the icon reflects the harness running now, not just the launch command.
   const tabAgent = useTabAgent(tab)
 
-  // Why: with a provider icon shown, strip the agent's own leading glyph so the tab doesn't show two icons for one agent.
-  const tabTitle = resolveTerminalTabTitle(tab, generatedTitlesEnabled)
-  const displayTitle = tabAgent ? stripLeadingAgentTitleDecoration(tabTitle) : tabTitle
+  const userCustomTitle =
+    tab.customTitle !== null &&
+    tab.customTitle !== undefined &&
+    !isOrchestrationWorkerTerminalTitle(tab.customTitle)
+      ? tab.customTitle
+      : null
+  const tabTitle = userCustomTitle ?? resolveTerminalTabTitle(tab, generatedTitlesEnabled)
+  // 사용자가 지정한 제목은 보존하고, 그 외에는 provider icon과 중복되는 agent glyph를 제거한다.
+  const displayTitle =
+    tabAgent && userCustomTitle === null ? stripLeadingAgentTitleDecoration(tabTitle) : tabTitle
 
   const { attributes, listeners, setNodeRef } = useSortable({
     id: tab.id,
