@@ -143,6 +143,36 @@ describe('a stopped document takes its engines with it', () => {
   })
 })
 
+describe('the page keeps its own capture buffer', () => {
+  it('quotes the lines this document captured, and a second mount has none of them', () => {
+    // The buffer is written by the document's own reporter: `startHostNotify` installs it through
+    // `installErrorReporter`, which on the page is a `window` error listener, and every error it
+    // forwards is appended before the report that quotes it. What the page has no use for is the
+    // WebView's head script, which captures what fails before any document exists.
+    const host = plantHost()
+    const posted: Array<Record<string, unknown>> = []
+    const mounted = mountTerminalWebDocument(host, (message) => posted.push(message))
+
+    window.dispatchEvent(new ErrorEvent('error', { message: 'first failure' }))
+    window.dispatchEvent(new ErrorEvent('error', { message: 'second failure' }))
+
+    const messages = posted.filter((message) => message.type === 'error').map((m) => m.message)
+    expect(messages[0]).toContain('captured: first failure')
+    expect(messages[1]).toContain('captured: first failure | second failure')
+
+    // A second mount is a second buffer: the first document's lines are not the second's to quote.
+    mounted.dispose()
+    const nextHost = plantHost()
+    const nextPosted: Array<Record<string, unknown>> = []
+    const next = mountTerminalWebDocument(nextHost, (message) => nextPosted.push(message))
+    window.dispatchEvent(new ErrorEvent('error', { message: 'third failure' }))
+    const nextMessages = nextPosted.filter((m) => m.type === 'error').map((m) => m.message)
+    expect(nextMessages[0]).toContain('captured: third failure')
+    expect(nextMessages[0]).not.toContain('first failure')
+    next.dispose()
+  })
+})
+
 describe('a start that throws gives the host back', () => {
   it('empties the host and drops the class', () => {
     const host = plantHost()

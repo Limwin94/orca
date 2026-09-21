@@ -131,9 +131,11 @@ function startDocumentOrGiveTheHostBack(
 
 /** The nine seams, as the page answers them. */
 function startPageDocument(host: HTMLElement, receive: (message: Record<string, unknown>) => void) {
-  // The shell's `<head>` opens a capture buffer before the WebView's engine script runs, and a
-  // report quotes it. This mount is a guest on a page that has no such buffer, so it holds its own:
-  // the lines are this document's, and a second mount does not inherit or empty them.
+  // Written by this document's own reporter: `startHostNotify` installs it through the seam below,
+  // which here is a `window` error listener, and every error it forwards is appended before the
+  // report that quotes it. What the page cannot have is the WebView head's half — a buffer open
+  // before the engine script runs — because the engine here is a static import of this module. So
+  // the buffer is per mount, and a second terminal quotes its own lines rather than the first's.
   const capturedEngineErrors: string[] = []
   return createTerminalDocument({
     capturedEngineErrors: () => capturedEngineErrors,
