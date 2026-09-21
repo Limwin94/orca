@@ -53,6 +53,7 @@ type SortableTabProps = {
   dragData: TabDragItemData
   dropIndicator?: DropIndicator
   includeTopTabBorder?: boolean
+  generatedTitlesEnabled?: boolean
   /** True when this agent terminal can switch between the terminal and native chat views; surfaces the "Switch view" context-menu item. */
   canToggleViewMode?: boolean
   /** True when the tab is currently showing the native chat view. */
@@ -86,6 +87,7 @@ export default function SortableTab({
   dragData,
   dropIndicator,
   includeTopTabBorder = true,
+  generatedTitlesEnabled = false,
   canToggleViewMode = false,
   isChatView = false,
   onToggleViewMode,
@@ -113,10 +115,6 @@ export default function SortableTab({
 
   // Why: shellOverride is stamped at create time, so changing the default shell later won't repaint existing tabs.
   const shellForIcon = tab.shellOverride
-
-  const generatedTitlesEnabled = useAppStore(
-    (state) => state.settings?.tabAutoGenerateTitle === true
-  )
 
   // Why: use hook status + title evidence so the icon reflects the harness running now, not just the launch command.
   const tabAgent = useTabAgent(tab)

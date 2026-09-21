@@ -12,6 +12,7 @@ import EditorFileTab from './EditorFileTab'
 import SortableTab from './SortableTab'
 
 let mockTabAgent: TuiAgent | null = null
+let settingsSelectorCalls = 0
 
 vi.mock('@dnd-kit/sortable', () => ({
   useSortable: ({ id }: { id: string }) => ({
@@ -98,7 +99,16 @@ vi.mock('../../store', () => ({
       unreadTerminalTabs: Record<string, boolean>
       settings: { tabAutoGenerateTitle: boolean }
     }) => unknown
-  ) => selector({ unreadTerminalTabs: {}, settings: { tabAutoGenerateTitle: true } })
+  ) => {
+    const state = {
+      unreadTerminalTabs: {},
+      get settings() {
+        settingsSelectorCalls += 1
+        return { tabAutoGenerateTitle: true }
+      }
+    }
+    return selector(state)
+  }
 }))
 
 vi.mock('@/store', () => ({
@@ -256,6 +266,7 @@ function makeEditorFile(overrides: Partial<OpenFile & { tabId?: string }> = {}):
 describe('tab title tooltips', () => {
   beforeEach(() => {
     mockTabAgent = null
+    settingsSelectorCalls = 0
   })
 
   it('uses the terminal custom title for the visible label and tooltip trigger content', () => {
@@ -308,6 +319,7 @@ describe('tab title tooltips', () => {
         isActive={true}
         isPinned={false}
         isExpanded={false}
+        generatedTitlesEnabled={true}
         onActivate={vi.fn()}
         onClose={vi.fn()}
         onCloseOthers={vi.fn()}
@@ -325,6 +337,7 @@ describe('tab title tooltips', () => {
     const root = openingTag(markup, 'data-testid', 'sortable-tab')
     expect(root).toContain('data-tab-title="Trace synthetic worker naming"')
     expect(markup).not.toContain('worker-task_0123abcdef45')
+    expect(settingsSelectorCalls).toBe(0)
   })
 
   it("shows the provider icon while stripping the agent's leading status glyph from the label", () => {

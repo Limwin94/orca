@@ -152,6 +152,7 @@ export function renderTabBarItems({
           dragData={dragData}
           dropIndicator={dropIndicatorByVisibleId.get(item.id) ?? null}
           includeTopTabBorder={includeTopTabBorder}
+          generatedTitlesEnabled={generatedTabTitlesEnabled}
         />
       )
     }
@@ -270,6 +271,7 @@ export function renderTabBarItems({
           dragData={dragData}
           dropIndicator={dropIndicatorByVisibleId.get(item.id) ?? null}
           includeTopTabBorder={includeTopTabBorder}
+          generatedTitlesEnabled={generatedTabTitlesEnabled}
         />
       )
     }
