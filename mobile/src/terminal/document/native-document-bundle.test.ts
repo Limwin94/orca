@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest'
-import { terminalDocumentBundleInputs } from '../../../scripts/build-terminal-document-script.mjs'
+import { terminalDocumentBundle } from '../../../scripts/build-terminal-document-script.mjs'
 import { createTerminalDocument } from './create-terminal-document'
 import { TERMINAL_DOCUMENT_SCRIPT } from '../terminal-webview-document-script.generated'
 import { TERMINAL_DOCUMENT_MARKUP } from '../terminal-webview-html'
@@ -283,13 +283,18 @@ describe('the bundled native document', () => {
     // The document imports ordinary modules now, so an import added anywhere in its graph reaches
     // the phone's script. `storage/preferences` did: one constant pulled AsyncStorage and its two
     // dependencies into a string with nothing to store, which is why the presets are a leaf module.
-    const inputs = await terminalDocumentBundleInputs()
+    //
+    // One build, read four ways. The count is exact because a module arriving in the phone's script
+    // is a review event, and the last assertion is what makes the other three about the artifact
+    // that ships rather than about a bundle this case built for itself.
+    const { script, inputs } = await terminalDocumentBundle()
     expect(inputs.filter((input) => input.includes('node_modules'))).toEqual([])
-    expect(inputs.length).toBeGreaterThan(40)
-    expect(TERMINAL_DOCUMENT_SCRIPT).not.toContain('__commonJS')
+    expect(inputs).toHaveLength(47)
+    expect(script).not.toContain('__commonJS')
     // `__esm` wrappers are esbuild's answer to a cycle, and a cycle would make a module's top level
     // run at first import rather than where the bundle places it.
-    expect(TERMINAL_DOCUMENT_SCRIPT).not.toContain('__esm(')
+    expect(script).not.toContain('__esm(')
+    expect(TERMINAL_DOCUMENT_SCRIPT).toBe(script)
   }, 30_000)
 
   it('reports a missing engine rather than starting without one', () => {

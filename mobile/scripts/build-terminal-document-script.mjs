@@ -54,19 +54,24 @@ export function terminalDocumentBuildOptions(extra = {}) {
   }
 }
 
-/** Every module the bundle pulls in, which is what a test reads to see what it is carrying. */
-export async function terminalDocumentBundleInputs() {
+/**
+ * One bundle, and everything a reader asks about it.
+ *
+ * The text and the module list come from the same build because they are two readings of one
+ * thing: a census that built its own would answer about a bundle nobody ships, and the pair is
+ * what lets a test compare the committed artifact with what the sources say it should be.
+ */
+export async function terminalDocumentBundle() {
   const result = await esbuild.build(terminalDocumentBuildOptions({ metafile: true }))
-  return Object.keys(result.metafile.inputs)
-}
-
-export async function buildTerminalDocumentScript() {
-  const result = await esbuild.build(terminalDocumentBuildOptions())
   const [output] = result.outputFiles
   if (!output) {
     throw new Error('[build-terminal-document-script] esbuild emitted no document bundle')
   }
-  return output.text.trimEnd()
+  return { script: output.text.trimEnd(), inputs: Object.keys(result.metafile.inputs) }
+}
+
+export async function buildTerminalDocumentScript() {
+  return (await terminalDocumentBundle()).script
 }
 
 async function main() {
