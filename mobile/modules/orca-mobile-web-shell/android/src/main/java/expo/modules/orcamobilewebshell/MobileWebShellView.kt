@@ -125,9 +125,6 @@ internal class OrcaMobileWebShellView(
     }
     served = MobileWebShellServed(loaded, host)
     view.visibility = View.VISIBLE
-    // The only thing that tells the load the shell asked for from one a document asked for. The
-    // state machine drops it again on every way a document can end.
-    loadState.shellLoadStarted()
     view.loadUrl("$origin/")
   }
 
@@ -372,7 +369,12 @@ internal class OrcaMobileWebShellView(
           served?.originHost,
           request.isForMainFrame
         ),
-        isShellLoad = loadState.isShellLoad,
+        // Always false, and it is the platform that says so. WebViewClient's own javadoc: "This
+        // callback is not called for all page navigations. In particular, this is not called for
+        // navigations which the app initiated with loadUrl(): this callback would not serve a purpose
+        // in this case, because the app already knows about the navigation." So there is no own-load
+        // window here to keep a flag for, and nothing reaching this callback is the shell's own load.
+        isShellLoad = false,
         hasGesture = request.hasGesture(),
         isDownload = false
       )

@@ -145,24 +145,4 @@ class MobileWebShellLoadStateTest {
       machine.failed(MobileWebShellFailureReason.RENDER_PROCESS_GONE)
     )
   }
-
-  @Test
-  fun `raises the own-load flag only for the view's own load, and drops it on every ending`() {
-    // The flag decides whether a navigation naming the document may be allowed, so every way a
-    // document can end has to drop it: a commit, a failure, a renderer that died, a prop update
-    // that never loaded. It lives here because those all already run through this type.
-    val machine = MobileWebShellLoadStateMachine()
-    assertFalse(machine.isShellLoad)
-    machine.shellLoadStarted()
-    assertTrue(machine.isShellLoad)
-    machine.committed()
-    assertFalse(machine.isShellLoad)
-    machine.shellLoadStarted()
-    machine.failed(MobileWebShellFailureReason.DOCUMENT_LOAD_FAILED)
-    assertFalse(machine.isShellLoad)
-    machine.reset()
-    machine.shellLoadStarted()
-    machine.documentEnded()
-    assertFalse(machine.isShellLoad)
-  }
 }

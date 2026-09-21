@@ -57,10 +57,15 @@ internal fun mobileWebShellOfferableUrl(url: String?): String? {
  * A navigation outside the main frame is the sealed preview frame loading itself. It is refused and
  * never offered: forwarding it would let an artifact ask for a browser with no tap behind it.
  *
- * **The document URL loads only when the shell asked for it.** `isShellLoad` is a flag the view
- * raises around its own `loadUrl` and drops at commit; nothing a document does can raise it. Every
- * other navigation naming the document is refused and never offered -- offering the shell's own URL
- * to the opener would send the user out of the app instead of reloading it.
+ * **The document URL loads only when the shell asked for it, and on this platform it never asks
+ * here.** `WebViewClient`'s own javadoc: "This callback is not called for all page navigations. In
+ * particular, this is not called for navigations which the app initiated with loadUrl(): this
+ * callback would not serve a purpose in this case, because the app already knows about the
+ * navigation." So the view passes `isShellLoad = false` always, and every navigation that reaches
+ * this callback naming the document is refused and never offered -- offering the shell's own URL to
+ * the opener would send the user out of the app instead of reloading it. The parameter stays in the
+ * signature because the rule is shared with iOS, where `WKWebView` does route the view's own load
+ * through the delegate and the flag is what tells it apart.
  *
  * Nothing here rests on the host reporting a gesture. Chromium's own documentation allows
  * `hasGesture()` to be false for a request a human started, and a sandboxed subframe navigating the
@@ -69,13 +74,15 @@ internal fun mobileWebShellOfferableUrl(url: String?): String? {
  * dropped, the load state restarted, the page's state gone.
  *
  * `isFromSubframe` is the iOS twin's second discriminator, where the initiating frame is readable.
- * Chromium does not report it here, so this platform passes false and rests on the flag alone.
+ * Chromium does not report it here, and with nothing ever allowed there is nothing for it to guard:
+ * the window a raised flag used to leave open -- a generation switch and a tap inside it -- is gone
+ * with the flag.
  *
- * That leaves one residual, stated rather than papered over. Between `loadUrl` raising the flag and
- * `onPageStarted` dropping it, a navigation to the document URL started inside the sealed preview
- * frame would be allowed, because nothing in this callback says which frame asked. Reaching it needs
- * a generation switch and a tap inside that window, and no host discriminator exists to close it;
- * iOS closes the same gap with `sourceFrame`. It is the one case a device proof has to look at.
+ * What a device proof has to look at instead is the other side of that decision. The javadoc's
+ * exemption is what this rests on; a WebView that did route the view's own load through here would
+ * have that load refused, and the load state would sit at `loading` rather than allowing a document
+ * to be replaced. An HTTP redirect out of `loadUrl` is routed here by design, and the shell serves
+ * its document itself with no redirect.
  *
  * What is left for the gesture is the only thing an artifact may ask for: a foreign URL, refused
  * and handed to the opener. A download naming the document is refused by the rule above instead,
