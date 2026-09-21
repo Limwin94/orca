@@ -214,19 +214,28 @@ describeRender('the sidebar hop to tasks, under the session it was opened with',
     await page.close()
   }, 60_000)
 
-  it('renders no labelled tasks control at a narrow viewport, which is why there is no hop', async () => {
-    // `app/h/_layout.tsx` renders the sidebar only on a wide layout, and only that header branch
-    // gives its Accounts and Tasks controls an accessibility label; the narrow header's are
-    // unlabelled pressables. So the hop this file is about does not exist at this viewport, and
-    // the honest assertion is its absence rather than a tap that cannot be aimed.
+  it('hands the hop over from the narrow header too, whose control C2.10 named', async () => {
+    // At this viewport `app/h/_layout.tsx` renders no sidebar, so the route's own header is the
+    // narrow toolbar. C2.10 gave its Tasks control the wide sibling's role and label, so the hop
+    // can be aimed at here rather than asserted absent, and the rule must hold on this branch as
+    // well: the control the phone actually presses is this one.
     const opened = await openHostRoute({
       viewport: NARROW,
       grants: [faultGrant, 'navigate', 'storage']
     })
-    const { page, errors } = opened
-    expect(await page.getByLabel('Tasks').count()).toBe(0)
-    expect(await navigates(page)).toEqual([])
+    const { page, errors, scripts } = opened
+    const loadedBefore = [...scripts]
+    const tasks = page.getByLabel('Tasks')
+    // Exactly one: the narrow layout renders one toolbar, so this is the control, not a pick
+    // among siblings that could have hidden a wide header rendering here.
+    expect(await tasks.count()).toBe(1)
+    await tasks.click()
+    await page.waitForTimeout(1_500)
+    expect(await navigates(page)).toEqual([
+      { v: bridgeVersion, type: 'notify', name: 'navigate', href: `${HOST_ROUTE}/tasks` }
+    ])
     expect(await page.evaluate(() => location.pathname)).toBe(HOST_ROUTE)
+    expect(scripts.filter((path) => !loadedBefore.includes(path))).toEqual([])
     expect(errors).toEqual([])
     await page.close()
   }, 60_000)
