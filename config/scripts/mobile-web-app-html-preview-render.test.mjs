@@ -529,11 +529,9 @@ for (const engine of ['chromium', 'webkit']) {
         // itself, which would put the session's own page inside the preview.
         expect(own.ownOriginFrameNavigations).toBe(0)
 
-        // That zero's presence precondition, and it attributes the fence as well: give the frame
-        // `allow-same-origin` and drop the policy, and this very fixture navigates the frame to the
-        // embedder's `/`. The same fixture with the policy dropped but the product's token kept
-        // navigates nothing, so what refuses it is the opaque origin the sandbox gives the frame,
-        // not the CSP.
+        // That zero's presence precondition: give the frame `allow-same-origin` and drop the policy
+        // and this very fixture navigates the frame to the embedder's `/`, so the reading is not
+        // blind.
         const loose = await open(browser(), {
           csp: null,
           sandbox: 'allow-scripts allow-same-origin allow-top-navigation',
@@ -543,6 +541,34 @@ for (const engine of ['chromium', 'webkit']) {
           expectArtifactInFrame: false
         })
         expect(loose.ownOriginFrameNavigations).toBe(1)
+
+        // Two fences, either of which would hold, each run with the other taken away -- the shape
+        // the script case above uses, rather than a claim in a comment.
+        //
+        // The token alone: no policy at all, and the navigation never starts, so nothing is served
+        // and nothing is reported.
+        const tokenOnly = await open(browser(), {
+          csp: null,
+          extra: { head: '<meta http-equiv="refresh" content="0;url=/">' }
+        })
+        expect(tokenOnly.pixelBefore).toBe(ARTIFACT_RGB)
+        expect(tokenOnly.ownOriginFrameNavigations).toBe(0)
+        expect(tokenOnly.ownOriginTopNavigations).toBe(0)
+        expect(tokenOnly.violations).toEqual([])
+
+        // The policy alone: grant `allow-same-origin`, keep the shipped header, and the navigation
+        // does start -- and `frame-src 'none'` refuses it, which the embedder reports as its own
+        // violation because a parent's policy governs where its frame may go. The engines differ
+        // only in what is left behind: chromium swaps an error page into the frame, WebKit leaves
+        // the artifact showing. Neither is asserted; the request never reaching the server is.
+        const policyOnly = await open(browser(), {
+          sandbox: 'allow-scripts allow-same-origin allow-top-navigation',
+          extra: { head: '<meta http-equiv="refresh" content="0;url=/">' },
+          expectArtifactInFrame: false
+        })
+        expect(policyOnly.ownOriginFrameNavigations).toBe(0)
+        expect(policyOnly.ownOriginTopNavigations).toBe(0)
+        expect(policyOnly.violations.join(' ')).toContain('frame-src')
       }, 180_000)
 
       it('hands up nothing without a tap, and nothing for a form or a new window', async () => {
