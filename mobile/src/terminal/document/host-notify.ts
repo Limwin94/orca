@@ -1,9 +1,9 @@
 import type { TerminalDocumentScope } from './document-scope'
+import type { TerminalEngineError } from './document-host-seams'
 
 // Declared beside the seam that hands it out, and re-exported here because this is where the
-// document's readers have always named it.
+// document's readers name it.
 export type { TerminalEngineError } from './document-host-seams'
-import type { TerminalEngineError } from './document-host-seams'
 
 /**
  * The postMessage bridge to the host, and the engine error reporting that rides on it.

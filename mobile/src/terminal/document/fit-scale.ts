@@ -7,10 +7,10 @@ import {
   updateTransform
 } from './viewport-transform'
 import type { TerminalDocumentScope } from './document-scope'
+import { scheduleDocumentFrame } from './document-frame-registry'
 
 /** The narrowest grid a fit or a text-scale change will fit to. */
 export const MIN_FIT_COLS = 20
-import { scheduleDocumentFrame } from './document-frame-registry'
 
 export function getCellHeight(scope: TerminalDocumentScope) {
   if (!scope.term || !scope.term._core) {
