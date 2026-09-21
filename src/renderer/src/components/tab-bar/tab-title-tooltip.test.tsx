@@ -93,8 +93,12 @@ vi.mock('@/lib/use-tab-agent', () => ({
 }))
 
 vi.mock('../../store', () => ({
-  useAppStore: (selector: (state: { unreadTerminalTabs: Record<string, boolean> }) => unknown) =>
-    selector({ unreadTerminalTabs: {} })
+  useAppStore: (
+    selector: (state: {
+      unreadTerminalTabs: Record<string, boolean>
+      settings: { tabAutoGenerateTitle: boolean }
+    }) => unknown
+  ) => selector({ unreadTerminalTabs: {}, settings: { tabAutoGenerateTitle: true } })
 }))
 
 vi.mock('@/store', () => ({
@@ -286,6 +290,41 @@ describe('tab title tooltips', () => {
     expect(root).toContain('role="tab"')
     expect(root).toContain('tabindex="0"')
     expectTabContainerWidth(markup, root)
+  })
+
+  it('uses the generated task title instead of an orchestration worker management title', () => {
+    const markup = renderToStaticMarkup(
+      <SortableTab
+        tab={makeTerminalTab({
+          customTitle: 'worker-task_0123abcdef45',
+          generatedTitle: 'Trace synthetic worker naming',
+          title: 'worker-task_0123abcdef45'
+        })}
+        unifiedTabId="terminal-1"
+        groupId="group-1"
+        tabCount={1}
+        hasTabsToRight={false}
+        hasTabsToLeft={false}
+        isActive={true}
+        isPinned={false}
+        isExpanded={false}
+        onActivate={vi.fn()}
+        onClose={vi.fn()}
+        onCloseOthers={vi.fn()}
+        onCloseToRight={vi.fn()}
+        onCloseToLeft={vi.fn()}
+        onSetCustomTitle={vi.fn()}
+        onSetTabColor={vi.fn()}
+        onTogglePin={vi.fn()}
+        onToggleExpand={vi.fn()}
+        dragData={makeDragData('terminal', 'terminal-1')}
+      />
+    )
+
+    expectTooltipContent(markup, 'Trace synthetic worker naming')
+    const root = openingTag(markup, 'data-testid', 'sortable-tab')
+    expect(root).toContain('data-tab-title="Trace synthetic worker naming"')
+    expect(markup).not.toContain('worker-task_0123abcdef45')
   })
 
   it("shows the provider icon while stripping the agent's leading status glyph from the label", () => {
