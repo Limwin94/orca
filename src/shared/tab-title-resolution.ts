@@ -13,13 +13,15 @@ export function resolveTerminalTabTitle(
 ): string {
   const liveTitle = tab.title?.trim() ?? ''
   const customTitle = tab.customTitle?.trim() ?? ''
-  const visibleLiveTitle = isOrchestrationWorkerTerminalTitle(liveTitle) ? '' : liveTitle
+  const generatedTitle = generatedTitlesEnabled ? (tab.generatedTitle?.trim() ?? '') : ''
+  const visibleLiveTitle =
+    isOrchestrationWorkerTerminalTitle(liveTitle) && generatedTitle ? '' : liveTitle
   return (
     (isOrchestrationWorkerTerminalTitle(customTitle) ? '' : customTitle) ||
     tab.quickCommandLabel?.trim() ||
     (isMeaningfulOpenCodeTerminalTitle(visibleLiveTitle) ? visibleLiveTitle : '') ||
     tab.aiVaultTitle?.title.trim() ||
-    (generatedTitlesEnabled ? tab.generatedTitle?.trim() : '') ||
+    generatedTitle ||
     visibleLiveTitle ||
     fallback
   )
@@ -34,13 +36,15 @@ export function resolveUnifiedTabLabel(
 ): string {
   const liveLabel = tab?.label?.trim() ?? ''
   const customLabel = tab?.customLabel?.trim() ?? ''
-  const visibleLiveLabel = isOrchestrationWorkerTerminalTitle(liveLabel) ? '' : liveLabel
+  const generatedLabel = generatedTitlesEnabled ? (tab?.generatedLabel?.trim() ?? '') : ''
+  const visibleLiveLabel =
+    isOrchestrationWorkerTerminalTitle(liveLabel) && generatedLabel ? '' : liveLabel
   return (
     (isOrchestrationWorkerTerminalTitle(customLabel) ? '' : customLabel) ||
     tab?.quickCommandLabel?.trim() ||
     (isMeaningfulOpenCodeTerminalTitle(visibleLiveLabel) ? visibleLiveLabel : '') ||
     tab?.aiVaultTitle?.title.trim() ||
-    (generatedTitlesEnabled ? tab?.generatedLabel?.trim() : '') ||
+    generatedLabel ||
     visibleLiveLabel ||
     fallback
   )

@@ -179,6 +179,23 @@ describe('tab title resolution', () => {
     ).toBe('Trace local worker terminal naming')
   })
 
+  it('keeps the worker management title when generated titles are unavailable', () => {
+    const workerTitle = 'worker-task_0123abcdef45'
+
+    expect(
+      resolveTerminalTabTitle(
+        { customTitle: workerTitle, generatedTitle: 'Hidden task name', title: workerTitle },
+        false
+      )
+    ).toBe(workerTitle)
+    expect(
+      resolveUnifiedTabLabel(
+        { customLabel: workerTitle, generatedLabel: 'Hidden task name', label: workerTitle },
+        false
+      )
+    ).toBe(workerTitle)
+  })
+
   it('uses quick command labels before generated unified labels', () => {
     expect(
       resolveUnifiedTabLabel(
