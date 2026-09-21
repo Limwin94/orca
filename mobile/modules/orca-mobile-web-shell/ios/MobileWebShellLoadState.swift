@@ -41,6 +41,15 @@ final class MobileWebShellLoadStateMachine {
     isShellLoad = true
   }
 
+  /// The one navigation the flag was raised for has been allowed, so the flag is spent.
+  ///
+  /// Spent at the decision and not at the commit: WebKit can decide a second main-frame action
+  /// before the first one starts, and a flag still raised then would have allowed that one to
+  /// replace the document.
+  func shellLoadConsumed() {
+    isShellLoad = false
+  }
+
   /// A new prop pair. Nothing else reopens a terminal state: a retry is a remount.
   func reset() {
     isTerminal = false

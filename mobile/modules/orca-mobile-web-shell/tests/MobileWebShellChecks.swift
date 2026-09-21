@@ -603,6 +603,38 @@ import Foundation
     precondition(verdict("javascript:alert(1)") == .cancelAndOffer("javascript:alert(1)"))
   }
 
+  /// The own-load flag against the policy that reads it: one load allowed, and only one.
+  ///
+  /// The flag and the rule are separate types, and the gap between them is where a second main-frame
+  /// action to the same URL before the first commits would have been allowed too. So the seam is
+  /// checked rather than each half on its own.
+  static func checkOwnLoadIsSpentOnce() {
+    let document = "orca-mobile-web://\(session)/"
+    func decide(_ machine: MobileWebShellLoadStateMachine) -> MobileWebShellNavigationVerdict {
+      MobileWebShellNavigationPolicy.verdict(
+        url: document,
+        isMainFrame: true,
+        isFromSubframe: false,
+        isDocumentUrl: true,
+        isShellLoad: machine.isShellLoad,
+        hasGesture: false,
+        isDownload: false
+      )
+    }
+    let machine = MobileWebShellLoadStateMachine()
+    machine.shellLoadStarted()
+    let first = decide(machine)
+    precondition(first == .allow)
+    // Spent by the allow itself, not by the commit that follows it: WebKit can decide a second action
+    // before the first one starts, and that one would have replaced the document.
+    machine.shellLoadConsumed()
+    precondition(decide(machine) == .cancel)
+    // And the endings still drop it, for a load that is allowed and then never commits.
+    machine.shellLoadStarted()
+    machine.documentEnded()
+    precondition(decide(machine) == .cancel)
+  }
+
   static func main() {
     checkSessionIds()
     checkRequestResolution()
@@ -614,6 +646,7 @@ import Foundation
     checkResponseHeaders()
     checkNavigationErrors()
     checkNavigationVerdict()
+    checkOwnLoadIsSpentOnce()
     checkAppliedProps()
     checkBridgeAcceptance()
     checkBridgePostTarget()

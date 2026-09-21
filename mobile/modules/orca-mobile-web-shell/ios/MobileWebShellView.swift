@@ -480,6 +480,11 @@ final class OrcaMobileWebShellView: ExpoView, WKNavigationDelegate, WKUIDelegate
     if case let .cancelAndOffer(url) = verdict {
       onExternalNavigation(["url": url])
     }
+    if verdict == .allow {
+      // Spent here, before the decision is handed back: the next main-frame action gets no allow on
+      // the strength of a load that has already been given one.
+      loadState.shellLoadConsumed()
+    }
     decisionHandler(verdict == .allow ? .allow : .cancel)
   }
 
