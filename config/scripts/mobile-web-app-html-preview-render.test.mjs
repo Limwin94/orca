@@ -635,9 +635,32 @@ async function waitForLoadedFrame(page, expectArtifact = true) {
   }
   await frame.waitForLoadState('load').catch(() => {})
   if (expectArtifact) {
-    await frame.waitForSelector('#marker', { state: 'attached', timeout: 0 })
+    // Bounded well inside the case's timeout, and the bound is for the message. The runner's Chrome
+    // read this frame's URL as empty where three chromium builds here read `about:srcdoc`, and the
+    // difference is not reproducible locally, so a frame that never becomes ready has to say what it
+    // did report rather than spend the case in silence.
+    await frame
+      .waitForSelector('#marker', { state: 'attached', timeout: 20_000 })
+      .catch(async (error) => {
+        throw new Error(
+          `the artifact never parsed inside the frame (${await describeFrame(page, frame)}): ${String(error).split('\n')[0]}`
+        )
+      })
   }
   return frame
+}
+
+/** What a frame that never became ready did report, which is the whole diagnosis on a runner. */
+async function describeFrame(page, frame) {
+  const violations = await page.evaluate(() => window.__violations).catch(() => null)
+  const srcdocLength = await page
+    .evaluate(() => document.querySelector('iframe')?.getAttribute('srcdoc')?.length ?? null)
+    .catch(() => null)
+  return [
+    `frame url ${JSON.stringify(frame.url())}`,
+    `srcdoc ${String(srcdocLength)} chars`,
+    `page violations ${JSON.stringify(violations)}`
+  ].join(', ')
 }
 
 /**
