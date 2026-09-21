@@ -296,10 +296,7 @@ describe('the document modules at parse time', () => {
     // stopped in the reverse of the order it was started in, and the frames go last of all.
     const paired = started.filter((name) => stopped.includes(name.replace(/^start/, 'stop')))
     expect(paired.map((name) => name.replace(/^start/, 'stop'))).toEqual(
-      stopped
-        .filter((name) => paired.includes(name.replace(/^stop/, 'start')))
-        .slice()
-        .reverse()
+      stopped.filter((name) => paired.includes(name.replace(/^stop/, 'start'))).toReversed()
     )
     expect(sequenceCalls('stopTerminalDocument').at(-1)).toBe('cancelDocumentFrames')
   })
