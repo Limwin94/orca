@@ -259,7 +259,7 @@ async function open(
     csp = 'shipped',
     sandbox,
     act,
-    awaitMainFrameNavigation = false,
+    expectNavigation = null,
     expectArtifactInFrame = true
   } = {}
 ) {
@@ -324,10 +324,11 @@ async function open(
   const pixelBefore = await probePixel(page)
   if (act) {
     await act({ page, frame: frames()[0] ?? null })
-    await (awaitMainFrameNavigation
-      ? waitForMainFrameNavigation(page, navigations)
-      : settleWithoutNavigation(page))
   }
+  // Every arm settles, acting or not: an artifact can start a navigation with no tap behind it --
+  // `<meta http-equiv="refresh">` is one -- and the arms that pin zero were reading their counters
+  // while that was still in flight.
+  await settleAfterMount(page, navigations, expectNavigation)
   const result = {
     page,
     pixelBefore,
@@ -476,7 +477,7 @@ for (const engine of ['chromium', 'webkit']) {
         // and the native tests named above are where that is pinned; what this counts is that the
         // request is real and reaches the shell at all.
         const root = await open(browser(), {
-          awaitMainFrameNavigation: true,
+          expectNavigation: 'main-frame',
           act: async ({ frame }) => {
             await frame?.click('#rootlink', { timeout: 2000 }).catch(() => {})
           }
@@ -487,7 +488,7 @@ for (const engine of ['chromium', 'webkit']) {
 
         // `href=""` is the same navigation spelled as "this document", and it resolves the same way.
         const empty = await open(browser(), {
-          awaitMainFrameNavigation: true,
+          expectNavigation: 'main-frame',
           act: async ({ frame }) => {
             await frame?.click('#emptylink', { timeout: 2000 }).catch(() => {})
           }
@@ -499,7 +500,7 @@ for (const engine of ['chromium', 'webkit']) {
 
       it("hands a user's tap on a link to the top frame, exactly once", async () => {
         const read = await open(browser(), {
-          awaitMainFrameNavigation: true,
+          expectNavigation: 'main-frame',
           act: async ({ frame }) => {
             await frame?.click('#toplink', { timeout: 2000 }).catch(() => {})
           }
@@ -537,8 +538,9 @@ for (const engine of ['chromium', 'webkit']) {
           sandbox: 'allow-scripts allow-same-origin allow-top-navigation',
           extra: { head: '<meta http-equiv="refresh" content="0;url=/">' },
           // This arm's frame leaves the artifact behind, which is the whole point of it, so the
-          // marker is not what says it is ready.
-          expectArtifactInFrame: false
+          // marker is not what says it is ready, and the navigation it makes is what it waits for.
+          expectArtifactInFrame: false,
+          expectNavigation: 'frame'
         })
         expect(loose.ownOriginFrameNavigations).toBe(1)
 
@@ -690,7 +692,24 @@ async function describeFrame(page, frame) {
 }
 
 /**
- * The moment the action's navigation exists, for an arm that expects one.
+ * Where an arm's counters are read: after the thing it is about, whatever that thing is.
+ *
+ * `expectNavigation` names what the arm is waiting for, and an arm that expects one waits for the
+ * record itself rather than for a clock. An arm that expects none has nothing to await, so it takes
+ * the bounded path below.
+ */
+async function settleAfterMount(page, navigations, expectNavigation) {
+  if (expectNavigation === 'main-frame') {
+    return await waitForRecordedNavigation(page, navigations, (one) => one.main)
+  }
+  if (expectNavigation === 'frame') {
+    return await waitForRecordedNavigation(page, navigations, (one) => !one.main && !one.foreign)
+  }
+  return await settleWithoutNavigation(page)
+}
+
+/**
+ * The moment the arm's navigation exists, for an arm that expects one.
  *
  * No clock on the way through: the route handler above records a main-frame navigation as the browser
  * dispatches it, so the oracles are read after the thing under test rather than after a wait. The
@@ -702,11 +721,11 @@ async function describeFrame(page, frame) {
  * the load the CI runner was under that this is for, which is the same condition that produced the
  * frame-commit race above.
  */
-async function waitForMainFrameNavigation(page, navigations) {
+async function waitForRecordedNavigation(page, navigations, matches) {
   const deadline = Date.now() + 15_000
-  while (!navigations.some((one) => one.main)) {
+  while (!navigations.some((one) => matches(one))) {
     if (Date.now() > deadline) {
-      throw new Error('the action produced no main-frame navigation to read')
+      throw new Error('the arm produced no navigation of the kind it expects')
     }
     await page.waitForTimeout(10)
   }
