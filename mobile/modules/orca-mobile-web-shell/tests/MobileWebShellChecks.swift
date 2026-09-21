@@ -563,6 +563,12 @@ import Foundation
         == .cancel
     )
     precondition(verdict(isDownload: true) == .cancelAndOffer(foreign))
+    // `<a href="/" download>`: a download that still names the shell's own document, which is the
+    // one thing never handed to the opener. Refused from either frame, gesture or not.
+    precondition(verdict(document, isDocumentUrl: true, isDownload: true) == .cancel)
+    precondition(
+      verdict(document, isFromSubframe: true, isDocumentUrl: true, isDownload: true) == .cancel
+    )
     // A subframe is the sealed preview loading itself, which is not the user leaving the app.
     precondition(verdict(isMainFrame: false) == .cancel)
     precondition(verdict(isMainFrame: false, hasGesture: false) == .cancel)

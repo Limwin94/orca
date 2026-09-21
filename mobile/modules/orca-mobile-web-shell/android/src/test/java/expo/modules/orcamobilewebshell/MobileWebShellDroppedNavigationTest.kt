@@ -103,6 +103,20 @@ class MobileWebShellDroppedNavigationTest {
   }
 
   @Test
+  fun `refuses a download that names the document, and offers it to nobody`() {
+    // `<a href="/" download>` is the shell's own URL however it is dressed, and the one thing that
+    // is never handed to the opener. Refused from either frame, gesture or not.
+    assertEquals(
+      MobileWebShellNavigationVerdict.Cancel,
+      verdict(url = DOCUMENT, isDocumentUrl = true, isDownload = true)
+    )
+    assertEquals(
+      MobileWebShellNavigationVerdict.Cancel,
+      verdict(url = DOCUMENT, isFromSubframe = true, isDocumentUrl = true, isDownload = true)
+    )
+  }
+
+  @Test
   fun `offers nothing for a subframe, which is the sealed preview loading itself`() {
     assertEquals(MobileWebShellNavigationVerdict.Cancel, verdict(isForMainFrame = false))
     assertEquals(

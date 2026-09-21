@@ -72,9 +72,11 @@ internal fun mobileWebShellOfferableUrl(url: String?): String? {
  * Chromium does not report it here, so this platform passes false and rests on the flag alone.
  *
  * What is left for the gesture is the only thing an artifact may ask for: a foreign URL, refused
- * and handed to the opener. `isDownload` is always false here and is carried so this reads as its
- * iOS twin does; Chromium never offers a download through `shouldOverrideUrlLoading`, it goes to
- * the `DownloadListener` the view installs as a no-op.
+ * and handed to the opener. A download naming the document is refused by the rule above instead,
+ * without an offer, because `<a href="/" download>` is the shell's own URL however it is dressed.
+ * `isDownload` is always false here and is carried so this reads as its iOS twin does; Chromium
+ * never offers a download through `shouldOverrideUrlLoading`, it goes to the `DownloadListener` the
+ * view installs as a no-op.
  *
  * Which URLs may actually open is not decided here -- `readBridgeExternalLinkUrl` owns the scheme
  * list, in the half that ships over the air.
@@ -89,8 +91,8 @@ internal fun mobileWebShellNavigationVerdict(
   isDownload: Boolean
 ): MobileWebShellNavigationVerdict {
   if (!isForMainFrame) return MobileWebShellNavigationVerdict.Cancel
-  if (isDocumentUrl && !isDownload) {
-    return if (isShellLoad && !isFromSubframe) {
+  if (isDocumentUrl) {
+    return if (isShellLoad && !isFromSubframe && !isDownload) {
       MobileWebShellNavigationVerdict.Allow
     } else {
       MobileWebShellNavigationVerdict.Cancel

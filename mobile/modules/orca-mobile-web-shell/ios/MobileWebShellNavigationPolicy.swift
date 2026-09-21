@@ -47,7 +47,9 @@ enum MobileWebShellNavigationPolicy {
   ///
   /// What is left for the gesture is the only thing an artifact may ask for: a foreign URL, which
   /// is refused and handed to the opener. A download is not a document load, so it takes that path
-  /// too, which is what makes `<a download>` behave the way it does on the native screens.
+  /// too, which is what makes `<a download>` behave the way it does on the native screens -- but a
+  /// download that still names the document takes the rule above and is refused without an offer,
+  /// because `<a href="/" download>` is the shell's own URL however it is dressed.
   ///
   /// Which URLs may actually open is not decided here -- `readBridgeExternalLinkUrl` owns the scheme
   /// list, in the half that ships over the air.
@@ -63,8 +65,8 @@ enum MobileWebShellNavigationPolicy {
     guard isMainFrame else {
       return .cancel
     }
-    if isDocumentUrl, !isDownload {
-      return isShellLoad && !isFromSubframe ? .allow : .cancel
+    if isDocumentUrl {
+      return isShellLoad && !isFromSubframe && !isDownload ? .allow : .cancel
     }
     guard hasGesture, let offered = offerableUrl(url) else {
       return .cancel

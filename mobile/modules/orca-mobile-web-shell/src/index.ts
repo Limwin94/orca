@@ -41,8 +41,9 @@ export type OrcaMobileWebShellViewProps = ViewProps & {
    * meta refresh, a redirect and anything the page does to its own path carry no gesture, so none of
    * them reaches this. Neither does a tap naming the shell's own document: that is refused outright
    * and never offered, because allowing it would reload the page out from under the session and
-   * offering it would send the user out of the app. A gesture-started download is offered, which is
-   * what makes `<a download>` behave as it does on the native screens.
+   * offering it would send the user out of the app -- and that holds for `<a href="/" download>` too,
+   * which is the same URL in a download's clothing. A gesture-started download of anything else is
+   * offered, which is what makes `<a download>` behave as it does on the native screens.
    *
    * The URL is unfiltered by design — `readBridgeExternalLinkUrl` owns the scheme list and lives in
    * the half that ships over the air — so a handler must run it through that before opening
