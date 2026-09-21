@@ -236,18 +236,25 @@ function createBranchProof(input: BranchProofInput) {
   }
 
   /** Uuids from the leaf back to (but excluding) the anchor, leaf first. Only
-   *  meaningful after `finish()`, which is what proved the walk reaches the anchor. */
+   *  meaningful after `finish()`, which is what proved the walk reaches the anchor.
+   *
+   *  A walk that does NOT reach the anchor throws rather than returning empty:
+   *  empty is the caller's "nothing followed the anchor", and answering that for
+   *  a broken walk would report non-delivery for records we never looked at. */
   function ancestryChain(leafUuid: string, anchorUuid: string): string[] {
     const chain: string[] = []
     let cursor: string | null = leafUuid
     for (let depth = 0; cursor !== null && cursor !== anchorUuid; depth += 1) {
       if (depth >= MAX_CLAUDE_TRANSCRIPT_ANCESTRY || !nodes.has(cursor)) {
-        return []
+        throw transcriptError(`ancestry chain does not reach anchor ${anchorUuid}`)
       }
       chain.push(cursor)
       cursor = nodes.get(cursor)?.parentUuid ?? null
     }
-    return cursor === anchorUuid ? chain : []
+    if (cursor !== anchorUuid) {
+      throw transcriptError(`ancestry chain does not reach anchor ${anchorUuid}`)
+    }
+    return chain
   }
 }
 

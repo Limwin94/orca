@@ -167,11 +167,17 @@ describe('Claude provider history source budget', () => {
     await writeFile(
       state.path,
       SOURCE.split('\n')
-        .filter((line) => !line.includes('"latest"'))
+        // Only the record — `"latest"` alone would take the marker row with it,
+        // leaving an unprovable transcript that satisfies this test vacuously.
+        .filter((line) => !line.includes('"uuid":"latest"'))
         .join('\n')
         .replace('"leafUuid":"latest"', '"leafUuid":"anchor"')
     )
-    expect((await read()).items).toEqual([])
+
+    const result = await read()
+
+    expect(result.boundaryConsistent).toBe(true)
+    expect(result.items).toEqual([])
     expect(state.streams).toBe(1)
   })
 
