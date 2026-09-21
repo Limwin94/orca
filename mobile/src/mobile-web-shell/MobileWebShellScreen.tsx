@@ -19,6 +19,7 @@ import {
   useMobileWebShellDroppedFrames
 } from './mobile-web-shell-dev-facts'
 import { cancelledShellNavigationTarget } from './cancelled-navigation-target'
+import { playPageHaptic } from './page-haptics'
 import { useMobileWebShellBridge } from './use-mobile-web-shell-bridge'
 import type { MobileWebShellRuntime } from './mobile-web-shell-runtime'
 import { useNativeDeviceVerbs } from '../platform/use-native-device-verbs'
@@ -220,7 +221,14 @@ export function MobileWebShellScreen({
     // mail account. Reported rather than swallowed: nothing crosses back for a notify, so this is
     // the one dead tap the verb does not rule out, and silence is what would hide it. Still not
     // rethrown, because this runs on the native frame handler.
+    // The same opener a cancelled top-frame navigation takes, hoisted above this call so both
+    // paths are one function: its body is the `Linking.openURL` and the warning this handler
+    // carried inline.
     onExternalLink: openUrlForPage,
+    // The app's own haptics, reached through one mapping rather than a second copy of the
+    // `Platform.OS` split. Nothing crosses back and nothing can fail: each function already
+    // swallows its own rejection on the device.
+    onHaptic: playPageHaptic,
     // The page's own Back goes nowhere: it holds the one history entry the entry wrote, so the only
     // stack to pop is this one.
     onNavigateBack: popShellStack,
