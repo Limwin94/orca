@@ -254,7 +254,14 @@ afterAll(async () => {
  */
 async function open(
   browser,
-  { extra = {}, csp = 'shipped', sandbox, act, awaitMainFrameNavigation = false } = {}
+  {
+    extra = {},
+    csp = 'shipped',
+    sandbox,
+    act,
+    awaitMainFrameNavigation = false,
+    expectArtifactInFrame = true
+  } = {}
 ) {
   const origin = csp === 'shipped' ? origins.shipped : origins.none
   nonceCounter += 1
@@ -308,7 +315,7 @@ async function open(
     ([html, override]) => window.__mount(html, override),
     [artifact(extra, nonce), sandbox ?? null]
   )
-  await waitForLoadedFrame(page)
+  await waitForLoadedFrame(page, expectArtifactInFrame)
   const frames = () => page.frames().filter((frame) => frame !== page.mainFrame())
   // Sampled before the action as well as after: a case that taps a link is asking what the tap
   // produced, and by then the top frame is mid-navigation and the iframe has blanked to its own
@@ -345,7 +352,17 @@ async function open(
         return { x: box.x, y: box.y, width: box.width, height: box.height }
       })
       .catch(() => null),
+    // Reported, never asserted on: a `srcdoc` frame's URL reads `about:srcdoc` here and empty on
+    // CI's browser, so nothing may be decided by it.
     frameUrl: frames()[0]?.url() ?? null,
+    // The element's own attributes, which is where "the artifact is parsed inside the frame rather
+    // than fetched into it" actually lives.
+    mountedSrcDoc: await page
+      .evaluate(() => document.querySelector('iframe')?.getAttribute('srcdoc') ?? null)
+      .catch(() => null),
+    mountedSrc: await page
+      .evaluate(() => document.querySelector('iframe')?.getAttribute('src') ?? null)
+      .catch(() => null),
     inside: await (frames()[0]
       ?.evaluate(() => ({
         marker: document.getElementById('marker')?.textContent ?? null,
@@ -387,7 +404,11 @@ for (const engine of ['chromium', 'webkit']) {
       it('paints the artifact under the policy the shell already ships', async () => {
         const read = await open(browser())
         expect(read.frameCount).toBe(1)
-        expect(read.frameUrl).toBe('about:srcdoc')
+        // The artifact is the frame's own document, not something it went and fetched: `srcdoc`
+        // carries it and there is no `src` at all. Read from the element rather than from the
+        // frame's URL, which is `about:srcdoc` on one browser and empty on another.
+        expect(read.mountedSrcDoc).toContain('ARTIFACT_RENDERED')
+        expect(read.mountedSrc).toBeNull()
         // The rendered frame carries the constant, so the token case below is about the frame the
         // page mounts rather than about a string nothing reads.
         expect(read.mountedSandbox).toBe(read.declaredSandbox)
@@ -516,7 +537,10 @@ for (const engine of ['chromium', 'webkit']) {
         const loose = await open(browser(), {
           csp: null,
           sandbox: 'allow-scripts allow-same-origin allow-top-navigation',
-          extra: { head: '<meta http-equiv="refresh" content="0;url=/">' }
+          extra: { head: '<meta http-equiv="refresh" content="0;url=/">' },
+          // This arm's frame leaves the artifact behind, which is the whole point of it, so the
+          // marker is not what says it is ready.
+          expectArtifactInFrame: false
         })
         expect(loose.ownOriginFrameNavigations).toBe(1)
       }, 180_000)
@@ -590,33 +614,30 @@ describe('the HTML preview needs no policy change', () => {
 })
 
 /**
- * The mounted frame, once it holds a document that has loaded.
+ * The mounted frame, once it holds the artifact.
  *
- * Three things settle at their own moments here: React commits the mount, the element's `srcdoc`
- * commits a document after that, and an override arm replaces that document with a second one. A
- * timed wait reads whichever of the three has happened by then, and on a loaded runner that is none
- * of them: CI read `frameUrl` as `''` -- the frame present, its `srcdoc` not yet committed -- and read
- * the control arm's script as not yet run. The race is invisible on an idle machine, which is why it
- * reached CI. So this polls instead, bounded by the case's own timeout rather than by a number here.
+ * Found by its element, never by its URL. A `srcdoc` frame reports `about:srcdoc` on both engines
+ * here and an empty URL on CI's browser, and a poll that waited for the string spent every case's
+ * whole timeout there -- seven timeouts on one engine, after the same difference had already shown
+ * up as `expected '' to be 'about:srcdoc'`.
+ *
+ * Three things still settle at their own moments: React commits the mount, the element's `srcdoc`
+ * commits a document, and an override arm replaces that document with a second one. So readiness is
+ * the fixture's own marker inside the frame, which exists only once the artifact has parsed there.
+ * `expectArtifact` is false for the one arm whose artifact deliberately navigates the frame
+ * somewhere else, where no marker is ever coming. Everything is bounded by the case's own timeout.
  */
-async function waitForLoadedFrame(page) {
-  // Past this, any child frame that has a URL will do: one arm's artifact tries to navigate the frame
-  // itself, and waiting for a document it may have left would spend the case's whole timeout.
-  const preferSealedUntil = Date.now() + 3000
-  for (;;) {
-    const children = page.frames().filter((one) => one !== page.mainFrame())
-    const frame =
-      children.find((one) => one.url() === 'about:srcdoc') ??
-      (Date.now() > preferSealedUntil ? children.find((one) => one.url() !== '') : undefined)
-    if (frame) {
-      // A read of the frame's current lifecycle state, not a listener: a document that finished
-      // loading before this poll first saw the frame still resolves, where a listener would wait for
-      // a `load` that had already fired.
-      await frame.waitForLoadState('load').catch(() => {})
-      return frame
-    }
-    await page.waitForTimeout(50)
+async function waitForLoadedFrame(page, expectArtifact = true) {
+  const element = await page.waitForSelector('iframe', { timeout: 0 })
+  const frame = await element.contentFrame()
+  if (!frame) {
+    return null
   }
+  await frame.waitForLoadState('load').catch(() => {})
+  if (expectArtifact) {
+    await frame.waitForSelector('#marker', { state: 'attached', timeout: 0 })
+  }
+  return frame
 }
 
 /**
