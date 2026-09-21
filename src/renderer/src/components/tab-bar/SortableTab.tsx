@@ -123,6 +123,7 @@ export default function SortableTab({
   const userCustomTitle =
     tab.customTitle !== null &&
     tab.customTitle !== undefined &&
+    tab.customTitle.trim().length > 0 &&
     !isOrchestrationWorkerTerminalTitle(tab.customTitle)
       ? tab.customTitle
       : null

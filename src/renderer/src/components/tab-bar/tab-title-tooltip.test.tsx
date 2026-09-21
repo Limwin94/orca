@@ -307,7 +307,7 @@ describe('tab title tooltips', () => {
     mockTabAgent = 'claude'
     const markup = renderToStaticMarkup(
       <SortableTab
-        tab={makeTerminalTab({ customTitle: '✦ My task', title: '✳ Claude Code' })}
+        tab={makeTerminalTab({ customTitle: '  ✦ My task  ', title: '✳ Claude Code' })}
         unifiedTabId="terminal-1"
         groupId="group-1"
         tabCount={1}
@@ -330,8 +330,39 @@ describe('tab title tooltips', () => {
     )
 
     expect(markup).toContain('data-agent-icon="claude"')
-    expectTooltipContent(markup, '✦ My task')
-    expect(markup).toContain('>✦ My task</span>')
+    expectTooltipContent(markup, '  ✦ My task  ')
+    expect(markup).toContain('data-tab-title="  ✦ My task  "')
+    expect(markup).toContain('>  ✦ My task  </span>')
+  })
+
+  it('falls back when the custom title contains only whitespace', () => {
+    const markup = renderToStaticMarkup(
+      <SortableTab
+        tab={makeTerminalTab({ customTitle: '   ' })}
+        unifiedTabId="terminal-1"
+        groupId="group-1"
+        tabCount={1}
+        hasTabsToRight={false}
+        hasTabsToLeft={false}
+        isActive={true}
+        isPinned={false}
+        isExpanded={false}
+        onActivate={vi.fn()}
+        onClose={vi.fn()}
+        onCloseOthers={vi.fn()}
+        onCloseToRight={vi.fn()}
+        onCloseToLeft={vi.fn()}
+        onSetCustomTitle={vi.fn()}
+        onSetTabColor={vi.fn()}
+        onTogglePin={vi.fn()}
+        onToggleExpand={vi.fn()}
+        dragData={makeDragData('terminal', 'terminal-1')}
+      />
+    )
+
+    expectTooltipContent(markup, 'Runtime terminal title')
+    const root = openingTag(markup, 'data-testid', 'sortable-tab')
+    expect(root).toContain('data-tab-title="Runtime terminal title"')
   })
 
   it('uses the generated task title instead of an orchestration worker management title', () => {
