@@ -34,8 +34,8 @@ const SURFACE_MARKUP =
 /**
  * A started document over a scope the case owns, with the hooks it wants as the host argument.
  *
- * The whole sequence, not a hand-picked subset: the elements `runtime-constants`, `surface-swap`
- * and `selection-state-and-eviction` read are read in the one order both hosts run them in, and a
+ * The whole sequence, not a hand-picked subset: the elements `surface-swap`, `text-scaling` and
+ * `selection-state-and-eviction` read are read in the one order both hosts run them in, and a
  * module added to that sequence is covered here without this file being edited.
  */
 function startedScope(host: TerminalDocumentHost = {}): TerminalDocumentScope {

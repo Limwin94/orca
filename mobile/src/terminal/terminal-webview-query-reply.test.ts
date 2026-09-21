@@ -19,9 +19,9 @@ type QueryReplyGate = {
 /**
  * The gate over a scope the case owns.
  *
- * The module is imported and handed a scope, so what used to be an evaluation with two injected
- * globals is now two seam fields: the notify goes to `postToHost`, and the write-queue boundary the
- * gate enqueues is read off the scope's own queue rather than intercepted.
+ * The module is imported and handed a scope, so the two things the gate reaches outside itself are
+ * seam fields: the notify goes to `postToHost`, and the write-queue boundary the gate enqueues is
+ * read off the scope's own queue rather than intercepted.
  */
 function createQueryReplyGate(notify: (message: unknown) => void): {
   gate: QueryReplyGate

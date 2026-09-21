@@ -180,6 +180,12 @@ export function installWindowHostTransport(receive: (frame: TerminalDocumentHost
   }
 }
 
+/** The shell's buffer, which its `<head>` has already declared by the time the document runs. */
+export function windowCapturedEngineErrors() {
+  window.__engineErrors = window.__engineErrors ?? []
+  return window.__engineErrors
+}
+
 /**
  * Whether the engine is here, as the WebView can know it: the engine is an IIFE that hangs
  * `Terminal` off `window`, and a script tag that failed to load leaves it undefined, which is the
@@ -187,16 +193,11 @@ export function installWindowHostTransport(receive: (frame: TerminalDocumentHost
  *
  * On the page the engine is an import that already resolved by the time the document is built, so
  * the page answers yes rather than reading a global it never writes.
+ *
+ * `!== undefined` rather than a `typeof` guard: the global is declared optional, so the lint rule
+ * that forbids the guard is right that there is nothing to guard against here.
  */
-/** The shell's buffer, which its `<head>` has already declared by the time the document runs. */
-export function windowCapturedEngineErrors() {
-  window.__engineErrors = window.__engineErrors ?? []
-  return window.__engineErrors
-}
-
 export function windowHasEngine() {
-  // `!== undefined` rather than a `typeof` guard: the global is declared optional, so the lint rule
-  // that forbids the guard is right that there is nothing to guard against here.
   return window.Terminal !== undefined
 }
 
