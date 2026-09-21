@@ -29,6 +29,18 @@ final class MobileWebShellLoadStateMachine {
   /// for a load the caller has already been told is `loading`.
   private(set) var hasCommittedDocument = false
 
+  /// Whether the navigation in flight is the one the shell asked for.
+  ///
+  /// Kept here rather than beside the `load` call because every way a document can end already runs
+  /// through this type: a commit, a failure, a renderer that died, a prop update that never loaded.
+  /// A flag in the view had to remember each of those separately, and missed two.
+  private(set) var isShellLoad = false
+
+  /// The view is about to load the document itself. The only thing that raises the flag.
+  func shellLoadStarted() {
+    isShellLoad = true
+  }
+
   /// A new prop pair. Nothing else reopens a terminal state: a retry is a remount.
   func reset() {
     isTerminal = false
@@ -37,6 +49,7 @@ final class MobileWebShellLoadStateMachine {
   }
 
   func committed() {
+    isShellLoad = false
     guard !isTerminal else { return }
     hasCommittedDocument = true
   }
@@ -44,6 +57,7 @@ final class MobileWebShellLoadStateMachine {
   /// The committed document is gone: a new load, a failure, or a renderer that died.
   func documentEnded() {
     hasCommittedDocument = false
+    isShellLoad = false
   }
 
   func started() -> MobileWebShellLoadEmission? {

@@ -71,6 +71,12 @@ internal fun mobileWebShellOfferableUrl(url: String?): String? {
  * `isFromSubframe` is the iOS twin's second discriminator, where the initiating frame is readable.
  * Chromium does not report it here, so this platform passes false and rests on the flag alone.
  *
+ * That leaves one residual, stated rather than papered over. Between `loadUrl` raising the flag and
+ * `onPageStarted` dropping it, a navigation to the document URL started inside the sealed preview
+ * frame would be allowed, because nothing in this callback says which frame asked. Reaching it needs
+ * a generation switch and a tap inside that window, and no host discriminator exists to close it;
+ * iOS closes the same gap with `sourceFrame`. It is the one case a device proof has to look at.
+ *
  * What is left for the gesture is the only thing an artifact may ask for: a foreign URL, refused
  * and handed to the opener. A download naming the document is refused by the rule above instead,
  * without an offer, because `<a href="/" download>` is the shell's own URL however it is dressed.

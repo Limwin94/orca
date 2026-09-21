@@ -45,6 +45,22 @@ internal class MobileWebShellLoadStateMachine {
   var hasCommittedDocument = false
     private set
 
+  /**
+   * Whether the navigation in flight is the one the shell asked for.
+   *
+   * Kept here rather than beside the `loadUrl` call because every way a document can end already
+   * runs through this type: a commit, a failure, a renderer that died, a prop update that never
+   * loaded. A flag in the view had to remember each of those separately, and missed two on iOS.
+   */
+  @Volatile
+  var isShellLoad = false
+    private set
+
+  /** The view is about to load the document itself. The only thing that raises the flag. */
+  fun shellLoadStarted() {
+    isShellLoad = true
+  }
+
   /** A new prop pair. Nothing else reopens a terminal state: a retry is a remount. */
   fun reset() {
     terminal = false
@@ -54,6 +70,7 @@ internal class MobileWebShellLoadStateMachine {
   }
 
   fun committed() {
+    isShellLoad = false
     if (terminal) return
     hasCommittedDocument = true
   }
@@ -61,6 +78,7 @@ internal class MobileWebShellLoadStateMachine {
   /** The committed document is gone: a new load, a failure, or a renderer that died. */
   fun documentEnded() {
     hasCommittedDocument = false
+    isShellLoad = false
   }
 
   fun started(): MobileWebShellLoadEmission? = emit(MobileWebShellLoadEmission("loading", null))

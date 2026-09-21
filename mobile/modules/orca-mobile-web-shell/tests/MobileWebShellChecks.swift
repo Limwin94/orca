@@ -235,6 +235,23 @@ import Foundation
     precondition(MobileWebShellFailureReason.documentLoadFailed.rawValue == "document-load-failed")
     precondition(MobileWebShellFailureReason.renderProcessGone.rawValue == "render-process-gone")
 
+    // The own-load flag's whole lifetime, which is what decides whether a navigation to the document
+    // may be allowed. Raised only by the view's own `load`, and dropped by anything that ends the
+    // document -- a commit, a failure, a dead renderer, a prop update that never loaded.
+    let ownLoad = MobileWebShellLoadStateMachine()
+    precondition(!ownLoad.isShellLoad)
+    ownLoad.shellLoadStarted()
+    precondition(ownLoad.isShellLoad)
+    ownLoad.committed()
+    precondition(!ownLoad.isShellLoad)
+    ownLoad.shellLoadStarted()
+    _ = ownLoad.failed(.documentLoadFailed)
+    precondition(!ownLoad.isShellLoad)
+    ownLoad.reset()
+    ownLoad.shellLoadStarted()
+    ownLoad.documentEnded()
+    precondition(!ownLoad.isShellLoad)
+
     let progress = MobileWebShellLoadStateMachine()
     precondition(progress.started()?.state == "loading")
     precondition(progress.started() == nil)
