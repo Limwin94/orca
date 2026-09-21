@@ -127,7 +127,7 @@ export default function SortableTab({
       ? tab.customTitle
       : null
   const tabTitle = userCustomTitle ?? resolveTerminalTabTitle(tab, generatedTitlesEnabled)
-  // 사용자가 지정한 제목은 보존하고, 그 외에는 provider icon과 중복되는 agent glyph를 제거한다.
+  // Why: keep an explicit user title verbatim; only strip the agent glyph from a resolved title.
   const displayTitle =
     tabAgent && userCustomTitle === null ? stripLeadingAgentTitleDecoration(tabTitle) : tabTitle
 
