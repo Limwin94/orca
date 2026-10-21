@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { X, Minimize2, Pin } from 'lucide-react'
-import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-title-decoration'
+import { resolveTabStripTitles } from '../../../../shared/tab-title-resolution'
 import { getAgentLabel } from '@/lib/agent-catalog'
 import { basename } from '@/lib/path'
-import { isOrchestrationWorkerTerminalTitle } from '../../../../shared/orchestration-worker-terminal-title'
 import { isImeCompositionKeyDown } from '@/lib/ime-composition-keyboard-event'
 import { Input } from '@/components/ui/input'
 import { TabHoverCard } from './TabHoverCard'
@@ -128,14 +127,7 @@ export default function SortableTab({
   // Why: shellOverride is stamped at create time, so changing the default shell later won't repaint existing tabs.
   const shellForIcon = tab.shellOverride
 
-  // Why: a worker-task_ id in customTitle is orchestration bookkeeping, not a name the user chose, and a blank one names nothing; the caller already resolved tab.title past both.
-  const userCustomTitle =
-    tab.customTitle?.trim() && !isOrchestrationWorkerTerminalTitle(tab.customTitle)
-      ? tab.customTitle
-      : null
-  // Why: with a provider icon shown, strip the agent's own leading glyph so the tab doesn't show two icons for one agent.
-  const displayTitle =
-    userCustomTitle ?? (tabAgent ? stripLeadingAgentTitleDecoration(tab.title) : tab.title)
+  const { tabTitle, displayTitle } = resolveTabStripTitles(tab, tabAgent !== null)
 
   const { attributes, listeners, setNodeRef } = useSortable({
     id: tab.id,
@@ -196,7 +188,6 @@ export default function SortableTab({
     disabled: isEditing
   })
   const slotProps = useTabStripSlotProps(tab.id, isActive)
-  const tabTitle = userCustomTitle ?? tab.title
   const tabRoot = (
     <div
       ref={setNodeRef}

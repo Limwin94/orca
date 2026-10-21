@@ -1,5 +1,6 @@
 import type { Tab } from './tab-types'
 import type { TerminalTab } from './terminal-tab-types'
+import { stripLeadingAgentTitleDecoration } from './agent-title-decoration'
 import { isMeaningfulOpenCodeTerminalTitle } from './opencode-terminal-title'
 import { isOrchestrationWorkerTerminalTitle } from './orchestration-worker-terminal-title'
 
@@ -48,4 +49,18 @@ export function resolveUnifiedTabLabel(
     visibleLiveLabel ||
     fallback
   )
+}
+
+/** Tab strip titles for a tab whose `title` the caller already resolved past a worker-task or blank customTitle. */
+export function resolveTabStripTitles(
+  tab: Pick<TerminalTab, 'customTitle' | 'title'>,
+  hasAgentIcon: boolean
+): { tabTitle: string; displayTitle: string } {
+  const userTitle =
+    tab.customTitle?.trim() && !isOrchestrationWorkerTerminalTitle(tab.customTitle)
+      ? tab.customTitle
+      : null
+  // Why: keep a user title verbatim; strip the agent glyph only so the provider icon isn't drawn twice.
+  const shownTitle = hasAgentIcon ? stripLeadingAgentTitleDecoration(tab.title) : tab.title
+  return { tabTitle: userTitle ?? tab.title, displayTitle: userTitle ?? shownTitle }
 }
