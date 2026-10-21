@@ -207,10 +207,15 @@ describe('getAgentRowConversationName', () => {
     ).toBe('Fix the greet helper')
   })
 
-  it('rejects orchestration worker management titles from live and restored tabs', () => {
+  it('rejects an orchestration worker management title from a live tab', () => {
+    expect(
+      getAgentRowConversationName(makeTab({ title: 'worker-task_0123abcdef45' }), 'codex', false)
+    ).toBeNull()
+  })
+
+  it('rejects an orchestration worker management title stored as a custom title', () => {
     const workerTitle = 'worker-task_0123abcdef45'
 
-    expect(getAgentRowConversationName(makeTab({ title: workerTitle }), 'codex', false)).toBeNull()
     expect(
       getAgentRowConversationName(
         makeTab({ customTitle: workerTitle, title: workerTitle }),

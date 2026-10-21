@@ -4,7 +4,7 @@ import { setupTerminalCreateSurfacing } from './ipc-events-terminal-create-test-
 describe('terminal presentation worker titles', () => {
   it('does not store an orchestration worker management title as a custom title', async () => {
     const scenario = await setupTerminalCreateSurfacing(() => false)
-    const { createTerminalListenerRef, setTabCustomTitle } = scenario
+    const { createTab, createTerminalListenerRef, setTabCustomTitle } = scenario
 
     if (!createTerminalListenerRef.current) {
       throw new Error('Expected create-terminal listener to be registered')
@@ -19,6 +19,7 @@ describe('terminal presentation worker titles', () => {
       presentation: 'background'
     })
 
+    expect(createTab).toHaveBeenCalledTimes(1)
     expect(setTabCustomTitle).not.toHaveBeenCalled()
   })
 })
